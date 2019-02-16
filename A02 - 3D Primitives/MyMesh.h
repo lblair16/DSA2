@@ -211,6 +211,15 @@ public:
 	OUTPUT: ---
 	*/
 	void GenerateSphere(float a_fRadius, int a_nSubdivisions, vector3 a_v3Color = C_WHITE);
+
+	//circle helper function
+	std::vector<vector3> GenerateCircle(float a_fRadius, int a_nSubdivisions, vector3 a_v3Color, float a_fZOffset);
+
+	//subdivide helper function
+	void Subdivide(float v1x, float v1y, float v1z,
+		float v2x, float v2y, float v2z,
+		float v3x, float v3y, float v3z,
+		int level, float a_fRadius);
 #pragma endregion
 };
 
