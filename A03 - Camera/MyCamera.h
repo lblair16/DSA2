@@ -15,6 +15,7 @@ class MyCamera
 	vector3 m_v3Position = vector3(0.0f, 0.0f, 10.0f); //Where my camera is located
 	vector3 m_v3Target = vector3(0.0f, 0.0f, 0.0f); //What I'm looking at
 	vector3 m_v3Above = vector3(0.0f, 1.0f, 0.0f); //What is above the camera
+	
 
 	bool m_bPerspective = true; //perspective view? False is Orthographic
 
@@ -29,6 +30,7 @@ class MyCamera
 	matrix4 m_m4View; //View matrix
 	matrix4 m_m4Projection; //Projection Matrix
 public:
+	vector3 m_v3Right = vector3(1.0f, 0.0f, 0.0f);
 	/*
 	USAGE: Constructor
 	ARGUMENTS: ---

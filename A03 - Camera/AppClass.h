@@ -19,6 +19,14 @@ class Application
 	MyCamera* m_pCamera = nullptr; //Camera class
 	MyMeshManager* m_pMyMeshMngr = nullptr; //My Mesh Manager
 	String m_sProgrammer = "Alberto Bobadilla - labigm@rit.edu"; //Programmer
+
+	//position values
+	float xCamera;
+	float yCamera;
+	float zCamera;
+
+	//quat for camera rotation
+	quaternion q;
 private:
 	static ImGuiObject gui; //GUI object
 
@@ -178,7 +186,7 @@ private:
 	ARGUMENTS: float a_fSpeed = 0.005f
 	OUTPUT: ---
 	*/
-	void CameraRotation(float a_fSpeed = 0.005f);
+	void CameraRotation(float a_fSpeed = 0.01f);
 #pragma endregion
 
 #pragma region Process Events

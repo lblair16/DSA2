@@ -347,29 +347,51 @@ void Application::CameraRotation(float a_fSpeed)
 	float fAngleX = 0.0f;
 	float fAngleY = 0.0f;
 	float fDeltaMouse = 0.0f;
+	
+
+	//get current target to append changes to
+	vector3 currTarget = m_pCamera->GetTarget();
+	vector3 currPosition = m_pCamera->GetPosition();
+	vector3 currAbove = m_pCamera->GetAbove();
+	vector3 forward = glm::normalize(currTarget - currPosition);
+	vector3 right = glm::cross(forward, glm::normalize(currAbove));
 	if (MouseX < CenterX)
 	{
 		fDeltaMouse = static_cast<float>(CenterX - MouseX);
 		fAngleY += fDeltaMouse * a_fSpeed;
+		q = glm::angleAxis(.1f, glm::cross(glm::normalize(currPosition - currTarget), glm::normalize(right)));
+		//currTarget.x -= fDeltaMouse * a_fSpeed;
 	}
 	else if (MouseX > CenterX)
 	{
 		fDeltaMouse = static_cast<float>(MouseX - CenterX);
 		fAngleY -= fDeltaMouse * a_fSpeed;
+		q = glm::angleAxis(-.1f, glm::cross(glm::normalize(currPosition - currTarget), glm::normalize(right)));
+		//currTarget.x += fDeltaMouse * a_fSpeed;
 	}
 
 	if (MouseY < CenterY)
 	{
 		fDeltaMouse = static_cast<float>(CenterY - MouseY);
 		fAngleX -= fDeltaMouse * a_fSpeed;
+		q = glm::angleAxis(.01f, glm::cross(glm::normalize(currPosition - currAbove), glm::normalize(forward)));
+		//currTarget.y += fDeltaMouse * a_fSpeed;
 	}
 	else if (MouseY > CenterY)
 	{
 		fDeltaMouse = static_cast<float>(MouseY - CenterY);
 		fAngleX += fDeltaMouse * a_fSpeed;
+		q = glm::angleAxis(-.01f, glm::cross(glm::normalize(currPosition - currAbove), glm::normalize(forward)));
+		//currTarget.y -= fDeltaMouse * a_fSpeed;
 	}
 	//Change the Yaw and the Pitch of the camera
+	//change target
+	currTarget = (q * (currTarget - currPosition) + currPosition);
+	//right = (q * (right - currPosition) + currPosition);
+	//m_pCamera->m_v3Right = right;
+	m_pCamera->SetTarget(currTarget);
 	SetCursorPos(CenterX, CenterY);//Position the mouse in the center
+
 }
 //Keyboard
 void Application::ProcessKeyboard(void)
@@ -383,13 +405,42 @@ void Application::ProcessKeyboard(void)
 	float fMultiplier = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
 		sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
 
+	vector3 currentPos = m_pCamera->GetPosition();
+	vector3 currentTarget = m_pCamera->GetTarget();
+	vector3 currentAbove = m_pCamera->GetAbove();
+	vector3 forward = glm::normalize(currentTarget - currentPos);
+
+	//this should be giving the vector that points directly to the right of the camera, seems to result in circular motion for some reason though
+	vector3 right = glm::cross(forward, glm::normalize(currentAbove));
+	//vector3 right = m_pCamera->m_v3Right;
+	right = glm::normalize(right);
 	if (fMultiplier)
 		fSpeed *= 5.0f;
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-		m_pCamera->MoveForward(fSpeed);
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-		m_pCamera->MoveForward(-fSpeed);
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+		currentPos += (forward * fSpeed);
+		currentTarget += (forward * fSpeed);
+		//right += (forward * fSpeed);
+	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+		currentPos -= (forward * fSpeed);
+		currentTarget -= (forward * fSpeed);
+		//right -= (forward * fSpeed);
+	}
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+		currentPos -= (right * fSpeed);
+		currentTarget -= (right * fSpeed);
+		//right -= (right * fSpeed);
+	}
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+		currentPos += (right * fSpeed);
+		currentTarget += (right * fSpeed);
+		//right += (right * fSpeed);
+	}
+
+	//m_pCamera->m_v3Right = right;
+	m_pCamera->SetPositionTargetAndUpward(currentPos, currentTarget, vector3(0.0f, 1.0f, 0.0f));
 #pragma endregion
 }
 //Joystick
