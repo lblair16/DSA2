@@ -6,6 +6,11 @@ uint MyOctant::m_uOctantCount = 0;
 uint MyOctant::m_uMaxLevel = 3;
 uint MyOctant::m_uIdealEntityCount = 5;
 
+uint MyOctant::GetOctantCount(void)
+{
+	return m_uOctantCount;
+}
+
 
 void MyOctant::Init(void)
 {
@@ -55,7 +60,23 @@ void MyOctant::Swap(MyOctant & other)
 	}
 }
 
+MyOctant * MyOctant::GetParent(void)
+{
+	return m_pParent;
+}
 
+void MyOctant::Release(void)
+{
+	if (m_uLevel == 0) {
+		KillBranches();
+	}
+	m_uChildren = 0;
+	m_fSize = 0.0f;
+	m_EntityList.clear();
+	m_lChild.clear();
+}
+
+//big three
 MyOctant::MyOctant(uint a_nMaxLevel, uint a_nIdealEntityCount)
 {
 	//init default values
@@ -103,7 +124,6 @@ MyOctant::MyOctant(uint a_nMaxLevel, uint a_nIdealEntityCount)
 	ConstructTree(m_uMaxLevel);
 }
 
-
 MyOctant::MyOctant(vector3 a_v3Center, float a_fSize)
 {
 	//init default values
@@ -116,7 +136,6 @@ MyOctant::MyOctant(vector3 a_v3Center, float a_fSize)
 
 	m_uOctantCount++;
 }
-
 
 MyOctant::MyOctant(MyOctant const & other)
 {
@@ -140,7 +159,6 @@ MyOctant::MyOctant(MyOctant const & other)
 	}
 }
 
-
 MyOctant & MyOctant::operator=(MyOctant const & other)
 {
 	if (this != &other) {
@@ -152,85 +170,41 @@ MyOctant & MyOctant::operator=(MyOctant const & other)
 	return *this;
 }
 
-
 MyOctant::~MyOctant()
 {
 	Release();
 }
 
-
+//accessors
 float MyOctant::GetSize(void)
 {
 	return m_fSize;
 }
-
-
 vector3 MyOctant::GetCenterGlobal(void)
 {
 	return m_v3Center;
 }
-
-
 vector3 MyOctant::GetMinGlobal(void)
 {
 	return m_v3Min;
 }
-
-
 vector3 MyOctant::GetMaxGlobal(void)
 {
 	return m_v3Max;
 }
-
-
-bool MyOctant::IsColliding(uint a_uRBIndex)
-{
-	uint nObjectCount = m_pEntityMngr->GetEntityCount();
-	//if index is larger than num elements, no collision
-	if (a_uRBIndex >= nObjectCount)
-		return false;
-	//do AABB collision check
-	MyEntity* pEntity = m_pEntityMngr->GetEntity(a_uRBIndex);
-	MyRigidBody* pRigidBody = pEntity->GetRigidBody();
-	vector3 v3MinO = pRigidBody->GetMinGlobal();
-	vector3 v3MaxO = pRigidBody->GetMaxGlobal();
-
-	//check for x
-	if (m_v3Max.x < v3MinO.x)
-		return false;
-	if (m_v3Min.x > v3MaxO.x)
-		return false;
-
-	//check for y
-	if (m_v3Max.y < v3MinO.y)
-		return false;
-	if (m_v3Min.y > v3MaxO.y)
-		return false;
-
-	//check for z
-	if (m_v3Max.z < v3MinO.z)
-		return false;
-	if (m_v3Min.z > v3MaxO.z)
-		return false;
-
-	//made it through all checks, positive collision
-	return true;
-}
-
 
 void MyOctant::Display(uint a_nIndex, vector3 a_v3Color)
 {
 	if (m_uID == a_nIndex) {
 		m_pMeshMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center)*
 			glm::scale(vector3(m_fSize)), a_v3Color, RENDER_WIRE);
-		
+
 		return;
 	}
 	for (uint i = 0; i < m_uChildren; i++) {
 		m_pChild[i]->Display(a_nIndex);
 	}
 }
-
 
 void MyOctant::Display(vector3 a_v3Color)
 {
@@ -240,27 +214,6 @@ void MyOctant::Display(vector3 a_v3Color)
 	m_pMeshMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center)*
 		glm::scale(vector3(m_fSize)), a_v3Color, RENDER_WIRE);
 }
-
-
-void MyOctant::DisplayLeafs(vector3 a_v3Color)
-{
-	uint nLeafs = m_lChild.size();
-	for (uint i = 0; i < nLeafs; i++) {
-		m_lChild[i]->DisplayLeafs(a_v3Color);
-	}
-	m_pMeshMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center)*
-		glm::scale(vector3(m_fSize)), a_v3Color, RENDER_WIRE);
-}
-
-
-void MyOctant::ClearEntityList(void)
-{
-	for (uint i = 0; i < m_uChildren; i++) {
-		m_pChild[i]->ClearEntityList();
-	}
-	m_EntityList.clear();
-}
-
 
 void MyOctant::Subdivide(void)
 {
@@ -322,7 +275,6 @@ void MyOctant::Subdivide(void)
 	}
 }
 
-
 MyOctant * MyOctant::GetChild(uint a_nChild)
 {
 	if (a_nChild > 7)
@@ -330,18 +282,44 @@ MyOctant * MyOctant::GetChild(uint a_nChild)
 	return m_pChild[a_nChild];
 }
 
-
-MyOctant * MyOctant::GetParent(void)
+bool MyOctant::IsColliding(uint a_uRBIndex)
 {
-	return m_pParent;
-}
+	uint nObjectCount = m_pEntityMngr->GetEntityCount();
+	//if index is larger than num elements, no collision
+	if (a_uRBIndex >= nObjectCount)
+		return false;
+	//do AABB collision check
+	MyEntity* pEntity = m_pEntityMngr->GetEntity(a_uRBIndex);
+	MyRigidBody* pRigidBody = pEntity->GetRigidBody();
+	vector3 v3MinO = pRigidBody->GetMinGlobal();
+	vector3 v3MaxO = pRigidBody->GetMaxGlobal();
 
+	//check for x
+	if (m_v3Max.x < v3MinO.x)
+		return false;
+	if (m_v3Min.x > v3MaxO.x)
+		return false;
+
+	//check for y
+	if (m_v3Max.y < v3MinO.y)
+		return false;
+	if (m_v3Min.y > v3MaxO.y)
+		return false;
+
+	//check for z
+	if (m_v3Max.z < v3MinO.z)
+		return false;
+	if (m_v3Min.z > v3MaxO.z)
+		return false;
+
+	//made it through all checks, positive collision
+	return true;
+}
 
 bool MyOctant::IsLeaf(void)
 {
 	return m_uChildren == 0;
 }
-
 
 bool MyOctant::ContainsMoreThan(uint a_nEntities)
 {
@@ -358,7 +336,6 @@ bool MyOctant::ContainsMoreThan(uint a_nEntities)
 	return false;
 }
 
-
 void MyOctant::KillBranches(void)
 {
 	//recursively delete all children until none are left
@@ -370,6 +347,23 @@ void MyOctant::KillBranches(void)
 	m_uChildren = 0;
 }
 
+void MyOctant::DisplayLeafs(vector3 a_v3Color)
+{
+	uint nLeafs = m_lChild.size();
+	for (uint i = 0; i < nLeafs; i++) {
+		m_lChild[i]->DisplayLeafs(a_v3Color);
+	}
+	m_pMeshMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center)*
+		glm::scale(vector3(m_fSize)), a_v3Color, RENDER_WIRE);
+}
+
+void MyOctant::ClearEntityList(void)
+{
+	for (uint i = 0; i < m_uChildren; i++) {
+		m_pChild[i]->ClearEntityList();
+	}
+	m_EntityList.clear();
+}
 
 void MyOctant::ConstructTree(uint a_nMaxLevel)
 {
@@ -398,7 +392,6 @@ void MyOctant::ConstructTree(uint a_nMaxLevel)
 
 }
 
-
 void MyOctant::AssignIDtoEntity(void)
 {
 	//traverse until you get to a leaf
@@ -416,26 +409,6 @@ void MyOctant::AssignIDtoEntity(void)
 		}
 	}
 }
-
-
-uint MyOctant::GetOctantCount(void)
-{
-	return m_uOctantCount;
-}
-
-
-void MyOctant::Release(void)
-{
-	if (m_uLevel == 0) {
-		KillBranches();
-	}
-	m_uChildren = 0;
-	m_fSize = 0.0f;
-	m_EntityList.clear();
-	m_lChild.clear();
-}
-
-
 
 void MyOctant::ConstructList(void)
 {
